@@ -302,6 +302,46 @@ def calculate_take_profit_price(
 # MetaTrader 5 integration
 # ===========================================================================
 
+def _check_credentials() -> bool:
+    """
+    Validate that MT5 credentials have been filled in.
+
+    Prints a clear, actionable error message when any required field is still
+    set to None and returns False so the caller can exit gracefully.
+    """
+    missing: list[str] = []
+    if config.MT5_LOGIN is None:
+        missing.append("  MT5_LOGIN    = 12345678          # your account number (int)")
+    if config.MT5_PASSWORD is None:
+        missing.append("  MT5_PASSWORD = \"YourPassword\"    # your account password (str)")
+    if config.MT5_SERVER is None:
+        missing.append("  MT5_SERVER   = \"BrokerName-Demo\" # server shown in MT5 status bar")
+
+    if not missing:
+        return True
+
+    logger.error(
+        "\n"
+        "┌─────────────────────────────────────────────────────────────┐\n"
+        "│            MT5 credentials not configured                   │\n"
+        "├─────────────────────────────────────────────────────────────┤\n"
+        "│ Open config.py and fill in the following settings:          │\n"
+        "│                                                             │\n"
+        "%s\n"
+        "│                                                             │\n"
+        "│ Steps:                                                      │\n"
+        "│  1. Download & install MetaTrader 5 (Windows only):         │\n"
+        "│     https://www.metatrader5.com/en/download                 │\n"
+        "│  2. Open MT5 and log in to your broker demo/live account.   │\n"
+        "│  3. Find your server name in the MT5 status bar or at       │\n"
+        "│     Tools -> Options -> Server tab.                         │\n"
+        "│  4. Set the values in config.py, then rerun: python bot.py  │\n"
+        "└─────────────────────────────────────────────────────────────┘",
+        "\n".join(f"│  {line:<59}│" for line in missing),
+    )
+    return False
+
+
 def mt5_connect() -> bool:
     """Initialise and log in to MetaTrader 5.  Returns True on success."""
     if not MT5_AVAILABLE:
@@ -469,6 +509,9 @@ def run_bot() -> None:
     every ``LOOP_INTERVAL_SECONDS`` tick.
     """
     logger.info("Starting EURUSD Bollinger Bands Bot …")
+
+    if not _check_credentials():
+        return
 
     if not mt5_connect():
         logger.warning(
